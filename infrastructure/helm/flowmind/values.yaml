@@ -1,0 +1,41 @@
+imagePullSecrets: []
+api:
+  image: { repository: ghcr.io/example/flowmind-api, tag: latest, pullPolicy: IfNotPresent }
+  replicas: 2
+  resources: { requests: { cpu: 250m, memory: 512Mi }, limits: { cpu: "1", memory: 1Gi } }
+worker:
+  image: { repository: ghcr.io/example/flowmind-api, tag: latest, pullPolicy: IfNotPresent }
+  replicas: 2
+  resources: { requests: { cpu: 250m, memory: 512Mi }, limits: { cpu: "1", memory: 1Gi } }
+web:
+  image: { repository: ghcr.io/example/flowmind-web, tag: latest, pullPolicy: IfNotPresent }
+  replicas: 2
+  resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { cpu: 500m, memory: 512Mi } }
+ai:
+  image: { repository: ghcr.io/example/flowmind-ai, tag: latest, pullPolicy: IfNotPresent }
+  replicas: 2
+  resources: { requests: { cpu: 250m, memory: 512Mi }, limits: { cpu: "2", memory: 2Gi } }
+config:
+  databaseUrl: jdbc:postgresql://postgres.example.internal:5432/flowmind
+  rabbitmqHost: rabbitmq.example.internal
+  redisHost: redis.example.internal
+  jwtIssuer: https://flowmind.example.com
+  jwtAudience: flowmind-web
+  executionStaleAfterSeconds: 600
+  webBaseUrl: https://flowmind.example.com
+  oidc:
+    enabled: false
+    issuerUri: ""
+    clientId: ""
+    autoLinkVerifiedEmail: false
+  authRateLimit:
+    requests: 20
+    windowSeconds: 60
+secretName: flowmind-runtime
+networkPolicy:
+  enabled: true
+ingress:
+  enabled: false
+  className: nginx
+  host: flowmind.example.com
+

@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: flowmind-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/flowmind}
+    username: ${POSTGRES_USER:flowmind}
+    password: ${POSTGRES_PASSWORD:flowmind-local-only}
+  flyway:
+    locations: classpath:db/migration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_DEFAULT_USER:flowmind}
+    password: ${RABBITMQ_DEFAULT_PASS:flowmind-local-only}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        prefetch: 4
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      connect-timeout: 2s
+      timeout: 2s
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: native
+  shutdown: graceful
+  tomcat:
+    remoteip:
+      trusted-proxies: ${FLOWMIND_TRUSTED_PROXIES:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+|127\.0\.0\.1}
+    max-http-form-post-size: 1MB
+    max-swallow-size: 1MB
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db,rabbit
+springdoc:
+  swagger-ui:
+    path: /docs
+flowmind:
+  control-plane:
+    enabled: ${FLOWMIND_CONTROL_PLANE_ENABLED:true}
+  worker:
+    enabled: ${FLOWMIND_WORKER_ENABLED:true}
+  web-base-url: ${FLOWMIND_WEB_BASE_URL:http://localhost:3002}
+  oidc:
+    enabled: ${FLOWMIND_OIDC_ENABLED:false}
+    issuer-uri: ${FLOWMIND_OIDC_ISSUER_URI:}
+    client-id: ${FLOWMIND_OIDC_CLIENT_ID:}
+    client-secret: ${FLOWMIND_OIDC_CLIENT_SECRET:}
+    auto-link-verified-email: ${FLOWMIND_OIDC_AUTO_LINK_VERIFIED_EMAIL:false}
+  ai-service-url: ${FLOWMIND_AI_URL:http://localhost:8081}
+  ai-service-token: ${FLOWMIND_AI_SERVICE_TOKEN:local-development-ai-token}
+  outbox:
+    exchange: flowmind.events
+  security:
+    issuer: ${FLOWMIND_JWT_ISSUER:http://localhost:8080}
+    audience: ${FLOWMIND_JWT_AUDIENCE:flowmind-web}
+    jwt-secret: ${FLOWMIND_JWT_SECRET:local-development-secret-change-me}
+    auth-rate-limit:
+      requests: ${FLOWMIND_AUTH_RATE_LIMIT_REQUESTS:20}
+      window-seconds: ${FLOWMIND_AUTH_RATE_LIMIT_WINDOW_SECONDS:60}
+

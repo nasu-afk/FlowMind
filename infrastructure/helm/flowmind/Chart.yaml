@@ -1,0 +1,7 @@
+apiVersion: v2
+name: flowmind
+description: FlowMind control plane, web application, and AI gateway
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+

@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: {{ .Release.Name }}-worker, labels: { app.kubernetes.io/name: flowmind-worker } }
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector: { matchLabels: { app.kubernetes.io/name: flowmind-worker } }
+  template:
+    metadata: { labels: { app.kubernetes.io/name: flowmind-worker } }
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      terminationGracePeriodSeconds: 90
+      containers:
+        - name: worker
+          image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag }}"
+          imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+          env:
+            - { name: DATABASE_URL, value: {{ .Values.config.databaseUrl | quote }} }
+            - { name: RABBITMQ_HOST, value: {{ .Values.config.rabbitmqHost | quote }} }
+            - { name: FLOWMIND_AI_URL, value: "http://{{ .Release.Name }}-ai:8081" }
+            - { name: FLOWMIND_WORKER_ENABLED, value: "true" }
+            - { name: FLOWMIND_CONTROL_PLANE_ENABLED, value: "false" }
+            - { name: SPRING_MAIN_WEB_APPLICATION_TYPE, value: "none" }
+          envFrom: [{ secretRef: { name: {{ .Values.secretName }} } }]
+          resources: {{- toYaml .Values.worker.resources | nindent 12 }}
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, capabilities: { drop: ["ALL"] } }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: { name: {{ .Release.Name }}-worker }
+spec: { minAvailable: 1, selector: { matchLabels: { app.kubernetes.io/name: flowmind-worker } } }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: {{ .Release.Name }}-worker }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: {{ .Release.Name }}-worker }
+  minReplicas: {{ .Values.worker.replicas }}
+  maxReplicas: 40
+  metrics: [{ type: Resource, resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } } }]

@@ -1,0 +1,14 @@
+groups:
+  - name: flowmind
+    rules:
+      - alert: FlowMindApiUnavailable
+        expr: up{job="flowmind-api"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations: { summary: "FlowMind API is unavailable" }
+      - alert: FlowMindHighErrorRate
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 1) > 0.05
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "API 5xx ratio exceeds 5%" }
+

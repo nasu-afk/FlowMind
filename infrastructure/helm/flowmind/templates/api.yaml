@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: {{ .Release.Name }}-api, labels: { app.kubernetes.io/name: flowmind-api } }
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector: { matchLabels: { app.kubernetes.io/name: flowmind-api } }
+  template:
+    metadata: { labels: { app.kubernetes.io/name: flowmind-api } }
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      containers:
+        - name: api
+          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          ports: [{ name: http, containerPort: 8080 }]
+          env:
+            - { name: DATABASE_URL, value: {{ .Values.config.databaseUrl | quote }} }
+            - { name: RABBITMQ_HOST, value: {{ .Values.config.rabbitmqHost | quote }} }
+            - { name: REDIS_HOST, value: {{ .Values.config.redisHost | quote }} }
+            - { name: FLOWMIND_JWT_ISSUER, value: {{ .Values.config.jwtIssuer | quote }} }
+            - { name: FLOWMIND_JWT_AUDIENCE, value: {{ .Values.config.jwtAudience | quote }} }
+            - { name: FLOWMIND_WORKER_ENABLED, value: "false" }
+            - { name: FLOWMIND_CONTROL_PLANE_ENABLED, value: "true" }
+            - { name: FLOWMIND_EXECUTION_STALE_AFTER_SECONDS, value: {{ .Values.config.executionStaleAfterSeconds | quote }} }
+            - { name: FLOWMIND_WEB_BASE_URL, value: {{ .Values.config.webBaseUrl | quote }} }
+            - { name: FLOWMIND_OIDC_ENABLED, value: {{ .Values.config.oidc.enabled | quote }} }
+            - { name: FLOWMIND_OIDC_ISSUER_URI, value: {{ .Values.config.oidc.issuerUri | quote }} }
+            - { name: FLOWMIND_OIDC_CLIENT_ID, value: {{ .Values.config.oidc.clientId | quote }} }
+            - { name: FLOWMIND_OIDC_AUTO_LINK_VERIFIED_EMAIL, value: {{ .Values.config.oidc.autoLinkVerifiedEmail | quote }} }
+            - { name: FLOWMIND_AUTH_RATE_LIMIT_REQUESTS, value: {{ .Values.config.authRateLimit.requests | quote }} }
+            - { name: FLOWMIND_AUTH_RATE_LIMIT_WINDOW_SECONDS, value: {{ .Values.config.authRateLimit.windowSeconds | quote }} }
+          envFrom: [{ secretRef: { name: {{ .Values.secretName }} } }]
+          readinessProbe: { httpGet: { path: /actuator/health/readiness, port: http }, initialDelaySeconds: 10, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /actuator/health/liveness, port: http }, initialDelaySeconds: 30, periodSeconds: 20 }
+          resources: {{- toYaml .Values.api.resources | nindent 12 }}
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, capabilities: { drop: ["ALL"] } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: {{ .Release.Name }}-api }
+spec: { selector: { app.kubernetes.io/name: flowmind-api }, ports: [{ name: http, port: 8080, targetPort: http }] }
+
